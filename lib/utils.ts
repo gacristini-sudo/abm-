@@ -51,6 +51,18 @@ export function initials(name: string): string {
     .join("");
 }
 
+// Explicit UTC timeZone so SSR (Node) and CSR (browser, arbitrary local TZ) agree.
+export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOptions): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+    ...options,
+  }).format(d);
+}
+
 export function relativeTime(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date) : date;
   const diff = Date.now() - d.getTime();

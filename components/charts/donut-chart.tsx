@@ -5,6 +5,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useChartTheme } from "@/hooks/use-chart-theme";
 import { ChartTooltip } from "@/components/charts/chart-tooltip";
 import { cn } from "@/lib/utils";
+import { resolveFormatter, type ValueFormat } from "@/lib/chart-format";
 
 interface DonutDatum {
   label: string;
@@ -13,13 +14,14 @@ interface DonutDatum {
 
 interface DonutChartProps {
   data: DonutDatum[];
-  formatter?: (value: number) => string;
+  format?: ValueFormat;
   height?: number;
   className?: string;
 }
 
-export function DonutChart({ data, formatter = (v) => String(v), height = 260, className }: DonutChartProps) {
+export function DonutChart({ data, format = "number", height = 260, className }: DonutChartProps) {
   const { colors } = useChartTheme();
+  const formatter = resolveFormatter(format);
   const total = data.reduce((s, d) => s + d.value, 0);
 
   return (

@@ -97,3 +97,16 @@ export function GlobalSearchTrigger() {
     </button>
   );
 }
+
+export function MobileSearchTrigger() {
+  const setOpen = useUiStore((s) => s.setCommandPaletteOpen);
+  return (
+    <button
+      onClick={() => setOpen(true)}
+      aria-label="Search"
+      className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/40 sm:hidden"
+    >
+      <Search className="size-4.5" />
+    </button>
+  );
+}

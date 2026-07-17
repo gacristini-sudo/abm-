@@ -12,6 +12,11 @@ const highProbability = [...ACCOUNTS]
   .filter((a) => a.status === "Proposal" || a.status === "Opportunity")
   .slice(0, 5);
 const pipelineRisk = ACCOUNTS.filter((a) => a.pipeline > 200000 && a.engagementScore < 45).slice(0, 5);
+const nextBestAction = [...ACCOUNTS]
+  .filter((a) => a.status !== "Closed Lost" && a.status !== "Closed Won")
+  .sort((a, b) => b.intentScore - a.intentScore)
+  .slice(5, 10);
+const healthAlerts = ACCOUNTS.filter((a) => a.healthScore < 45 && a.status !== "Closed Lost").slice(0, 5);
 
 function buildInsights(): AiInsight[] {
   const insights: AiInsight[] = [];
@@ -103,6 +108,36 @@ function buildInsights(): AiInsight[] {
       value: `$${Math.round(a.pipeline / 1000)}K`,
       createdAt: daysAgoIso(rng.int(0, 6)),
       recommendedAction: "Re-engage champion and confirm timeline",
+    });
+  });
+
+  nextBestAction.forEach((a, i) => {
+    insights.push({
+      id: `action-${i}`,
+      type: "action",
+      severity: "info",
+      title: `Next best action for ${a.name}`,
+      description: a.nextAction,
+      accountId: a.id,
+      accountName: a.name,
+      value: a.status,
+      createdAt: daysAgoIso(rng.int(0, 5)),
+      recommendedAction: a.nextAction,
+    });
+  });
+
+  healthAlerts.forEach((a, i) => {
+    insights.push({
+      id: `health-${i}`,
+      type: "health",
+      severity: a.healthScore < 30 ? "critical" : "warning",
+      title: `${a.name} health score alert`,
+      description: `Health score fell to ${a.healthScore}, driven by reduced stakeholder responsiveness and slower deal progression.`,
+      accountId: a.id,
+      accountName: a.name,
+      value: `Health ${a.healthScore}`,
+      createdAt: daysAgoIso(rng.int(0, 4)),
+      recommendedAction: "Escalate to Customer Success for a health check-in",
     });
   });
 

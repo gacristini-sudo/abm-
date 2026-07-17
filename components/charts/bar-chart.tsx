@@ -4,6 +4,7 @@ import { Bar, BarChart as ReBarChart, CartesianGrid, Cell, ResponsiveContainer, 
 
 import { useChartTheme } from "@/hooks/use-chart-theme";
 import { ChartTooltip } from "@/components/charts/chart-tooltip";
+import { resolveFormatter, type ValueFormat } from "@/lib/chart-format";
 
 interface BarDatum {
   label: string;
@@ -13,7 +14,7 @@ interface BarDatum {
 interface SimpleBarChartProps {
   data: BarDatum[];
   layout?: "vertical" | "horizontal";
-  formatter?: (value: number) => string;
+  format?: ValueFormat;
   height?: number;
   color?: string;
 }
@@ -21,11 +22,12 @@ interface SimpleBarChartProps {
 export function SimpleBarChart({
   data,
   layout = "horizontal",
-  formatter = (v) => String(v),
+  format = "number",
   height = 300,
   color,
 }: SimpleBarChartProps) {
   const { colors, ink } = useChartTheme();
+  const formatter = resolveFormatter(format);
   const barColor = color ?? colors[0];
   const isVertical = layout === "vertical";
 

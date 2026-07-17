@@ -1,0 +1,326 @@
+// Prisma schema for the Meridian ABM platform.
+// The UI currently runs entirely on the seeded mock data in /data — this schema
+// is the target model for wiring up real persistence via Supabase Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Connection URL lives in prisma.config.ts (Prisma 7+), not here.
+datasource db {
+  provider = "postgresql"
+}
+
+enum Tier {
+  TIER_1
+  TIER_2
+  TIER_3
+}
+
+enum AccountStatus {
+  TARGET
+  ENGAGED
+  MQL
+  SAL
+  SQL
+  OPPORTUNITY
+  PROPOSAL
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum HealthStatus {
+  HEALTHY
+  NEUTRAL
+  AT_RISK
+  CRITICAL
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum StakeholderStatus {
+  CHAMPION
+  SUPPORTER
+  NEUTRAL
+  DETRACTOR
+  UNKNOWN
+}
+
+enum TimelineEventType {
+  EMAIL
+  CALL
+  MEETING
+  LINKEDIN
+  EVENT
+  DOWNLOAD
+  WEBSITE_VISIT
+  OPPORTUNITY
+  PROPOSAL
+  CLOSED_WON
+}
+
+enum IntentSource {
+  BOMBORA
+  SIXSENSE
+  ZOOMINFO
+  LINKEDIN
+  GOOGLE
+}
+
+enum ContentType {
+  WHITEPAPER
+  CASE_STUDY
+  WEBINAR
+  EVENT
+  LANDING_PAGE
+}
+
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  DRAFT
+}
+
+enum InsightType {
+  RISK
+  INTENT
+  ACTION
+  EXPANSION
+  STAKEHOLDER
+  CONTENT
+  PROBABILITY
+  PIPELINE_RISK
+  HEALTH
+}
+
+enum InsightSeverity {
+  CRITICAL
+  WARNING
+  INFO
+  POSITIVE
+}
+
+model User {
+  id            String   @id @default(cuid())
+  supabaseId    String   @unique
+  name          String
+  email         String   @unique
+  title         String?
+  phone         String?
+  avatarUrl     String?
+  role          String   @default("Member")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  ownedAccounts    Account[]      @relation("AccountOwner")
+  opportunities    Opportunity[]  @relation("OpportunityOwner")
+  timelineEntries  TimelineEvent[] @relation("TimelineActor")
+
+  @@map("users")
+}
+
+model Account {
+  id                String        @id @default(cuid())
+  name              String
+  domain            String        @unique
+  segment           String
+  industry          String
+  tier              Tier
+  region            String
+  icpScore          Int
+  intentScore       Int
+  engagementScore   Int
+  healthScore       Int
+  pipeline          Decimal       @default(0) @db.Decimal(14, 2)
+  revenue           Decimal       @default(0) @db.Decimal(14, 2)
+  employees         Int
+  status            AccountStatus @default(TARGET)
+  healthStatus      HealthStatus  @default(NEUTRAL)
+  lastInteractionAt DateTime?
+  nextAction        String?
+  address           String?
+  website           String?
+  description       String?
+  products          String[]
+
+  ownerId String?
+  owner   User?   @relation("AccountOwner", fields: [ownerId], references: [id])
+
+  stakeholders   Stakeholder[]
+  opportunities  Opportunity[]
+  timelineEvents TimelineEvent[]
+  intentSignals  IntentSignal[]
+  aiInsights     AiInsight[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tier])
+  @@index([status])
+  @@index([ownerId])
+  @@map("accounts")
+}
+
+model Stakeholder {
+  id             String            @id @default(cuid())
+  accountId      String
+  account        Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name           String
+  title          String
+  department     String
+  email          String?
+  linkedin       String?
+  avatarUrl      String?
+  influence      Int
+  championScore  Int
+  engagement     Int
+  lastContactAt  DateTime?
+  sentiment      Sentiment          @default(NEUTRAL)
+  status         StakeholderStatus  @default(UNKNOWN)
+  isDecisionMaker Boolean           @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+  @@map("stakeholders")
+}
+
+model Opportunity {
+  id          String        @id @default(cuid())
+  accountId   String
+  account     Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name        String
+  stage       AccountStatus
+  amount      Decimal       @db.Decimal(14, 2)
+  probability Int
+  product     String
+  closeDate   DateTime?
+
+  ownerId String?
+  owner   User?   @relation("OpportunityOwner", fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([stage])
+  @@map("opportunities")
+}
+
+model Campaign {
+  id                  String         @id @default(cuid())
+  name                String
+  objective           String
+  channel             String
+  status              CampaignStatus @default(DRAFT)
+  accounts            Int            @default(0)
+  ctr                 Float          @default(0)
+  openRate            Float          @default(0)
+  meetings            Int            @default(0)
+  pipelineInfluenced  Decimal        @default(0) @db.Decimal(14, 2)
+  revenueInfluenced   Decimal        @default(0) @db.Decimal(14, 2)
+  roi                 Float          @default(0)
+  spend               Decimal        @default(0) @db.Decimal(14, 2)
+  startDate           DateTime?
+  endDate             DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("campaigns")
+}
+
+model IntentSignal {
+  id        String       @id @default(cuid())
+  accountId String
+  account   Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  topic     String
+  score     Int
+  source    IntentSource
+  surge     Float        @default(0)
+  detectedAt DateTime    @default(now())
+
+  @@index([accountId])
+  @@index([topic])
+  @@map("intent_signals")
+}
+
+model ContentAsset {
+  id                 String      @id @default(cuid())
+  title              String
+  type               ContentType
+  views              Int         @default(0)
+  downloads          Int         @default(0)
+  avgTimeSeconds     Int         @default(0)
+  pipelineInfluenced Decimal     @default(0) @db.Decimal(14, 2)
+  revenueInfluenced  Decimal     @default(0) @db.Decimal(14, 2)
+  accountsEngaged    Int         @default(0)
+  publishedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("content_assets")
+}
+
+model MarketingEvent {
+  id                String   @id @default(cuid())
+  name              String
+  type              String
+  date              DateTime
+  status            String
+  registered        Int      @default(0)
+  attended          Int      @default(0)
+  accountsInvolved  Int      @default(0)
+  pipelineGenerated Decimal  @default(0) @db.Decimal(14, 2)
+  revenueGenerated  Decimal  @default(0) @db.Decimal(14, 2)
+  location          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("marketing_events")
+}
+
+model TimelineEvent {
+  id          String            @id @default(cuid())
+  accountId   String
+  account     Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type        TimelineEventType
+  title       String
+  description String?
+  meta        String?
+  occurredAt  DateTime          @default(now())
+
+  actorId String?
+  actor   User?   @relation("TimelineActor", fields: [actorId], references: [id])
+
+  @@index([accountId])
+  @@index([type])
+  @@map("timeline_events")
+}
+
+model AiInsight {
+  id                String          @id @default(cuid())
+  type              InsightType
+  severity          InsightSeverity
+  title             String
+  description       String
+  value             String?
+  recommendedAction String?
+
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([accountId])
+  @@map("ai_insights")
+}

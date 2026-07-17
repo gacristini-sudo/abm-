@@ -3,7 +3,7 @@
 import { Plus } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { GlobalSearchTrigger } from "@/components/layout/command-palette";
+import { GlobalSearchTrigger, MobileSearchTrigger } from "@/components/layout/command-palette";
 import { NotificationsMenu } from "@/components/layout/notifications";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
@@ -20,6 +20,7 @@ export function TopBar() {
       <div className="hidden sm:block">
         <GlobalSearchTrigger />
       </div>
+      <MobileSearchTrigger />
       <Button size="sm" className="hidden md:inline-flex">
         <Plus /> New Account
       </Button>
